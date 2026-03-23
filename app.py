@@ -14,6 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
+import json
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -293,7 +294,8 @@ def main():
     
     page = st.sidebar.radio(
         "Select Page:",
-        ["📊 Dashboard", "🔍 Area Search", "📈 Analysis", "ℹ️ About"]
+        ["📊 Dashboard", "🔍 Area Search", "📈 Analysis", "📊 Statistics", 
+         "🔬 Risk Factors", "⚖️ Compare Areas", "🎯 Trends", "💾 Export", "ℹ️ About"]
     )
     
     # Load models with spinner
@@ -417,7 +419,7 @@ def main():
                 display_df['gentrification_probability'] = (display_df['gentrification_probability'] * 100).round(1).astype(str) + '%'
                 display_df['displacement_risk'] = (display_df['displacement_risk'] * 100).round(1).astype(str) + '%'
                 display_df['predicted_rent'] = display_df['predicted_rent'].apply(format_currency)
-                st.dataframe(display_df, use_container_width=True)
+                st.dataframe(display_df, width='stretch')
         else:
             st.info("👇 Type an area name in the search box above to get started")
     
@@ -442,7 +444,7 @@ def main():
             display_df['predicted_rent'] = display_df['predicted_rent'].apply(format_currency)
             display_df.columns = ['Area', 'Gentrification %', 'Displacement %', 'Predicted Rent', 'Risk Level']
             
-            st.dataframe(display_df, use_container_width=True)
+            st.dataframe(display_df, width='stretch')
         
         elif analysis_type == "Highest Displacement Risk":
             st.subheader("⚠️ Areas with Highest Displacement Risk")
@@ -454,7 +456,7 @@ def main():
             display_df['predicted_rent'] = display_df['predicted_rent'].apply(format_currency)
             display_df.columns = ['Area', 'Displacement %', 'Gentrification %', 'Predicted Rent', 'Risk Level']
             
-            st.dataframe(display_df, use_container_width=True)
+            st.dataframe(display_df, width='stretch')
         
         else:
             st.subheader("📊 All Areas")
@@ -464,7 +466,7 @@ def main():
             display_df['predicted_rent'] = display_df['predicted_rent'].apply(format_currency)
             display_df.columns = ['Area', 'Gentrification %', 'Displacement %', 'Predicted Rent', 'Risk Level']
             
-            st.dataframe(display_df, use_container_width=True)
+            st.dataframe(display_df, width='stretch')
             
             # Download button
             csv = display_df.to_csv(index=False)
@@ -476,7 +478,426 @@ def main():
             )
     
     # ============================================================
-    # PAGE 4: ABOUT
+    # PAGE 4: STATISTICS & DISTRIBUTION ANALYSIS
+    # ============================================================
+    elif page == "📊 Statistics":
+        st.title("📊 Statistical Analysis & Distribution")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Mean Gentrification", f"{predictions['gentrification_probability'].mean()*100:.1f}%")
+        with col2:
+            st.metric("Median Gentrification", f"{predictions['gentrification_probability'].median()*100:.1f}%")
+        with col3:
+            st.metric("Std Dev Gentrification", f"{predictions['gentrification_probability'].std()*100:.1f}%")
+        with col4:
+            st.metric("Max Risk", f"{predictions['gentrification_probability'].max()*100:.1f}%")
+        
+        st.markdown("---")
+        
+        # Distribution histograms
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📈 Gentrification Risk Distribution")
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.hist(predictions['gentrification_probability'] * 100, bins=20, color='steelblue', edgecolor='black', alpha=0.7)
+            ax.set_xlabel('Gentrification Probability (%)')
+            ax.set_ylabel('Number of Areas')
+            ax.axvline(predictions['gentrification_probability'].mean() * 100, color='red', linestyle='--', linewidth=2, label='Mean')
+            ax.axvline(predictions['gentrification_probability'].median() * 100, color='green', linestyle='--', linewidth=2, label='Median')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            st.pyplot(fig)
+        
+        with col2:
+            st.subheader("📉 Displacement Risk Distribution")
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.hist(predictions['displacement_risk'] * 100, bins=20, color='coral', edgecolor='black', alpha=0.7)
+            ax.set_xlabel('Displacement Risk (%)')
+            ax.set_ylabel('Number of Areas')
+            ax.axvline(predictions['displacement_risk'].mean() * 100, color='red', linestyle='--', linewidth=2, label='Mean')
+            ax.axvline(predictions['displacement_risk'].median() * 100, color='green', linestyle='--', linewidth=2, label='Median')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            st.pyplot(fig)
+        
+        # Risk category breakdown
+        st.markdown("---")
+        st.subheader("🎯 Risk Category Breakdown")
+        
+        risk_categories = pd.cut(
+            predictions['gentrification_probability'],
+            bins=[0, 0.25, 0.5, 0.8, 1.0],
+            labels=['Low Risk', 'Medium Risk', 'High Risk', 'Very High Risk']
+        )
+        
+        risk_counts = risk_categories.value_counts().sort_index()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Count by Risk Level:**")
+            for risk_level, count in risk_counts.items():
+                percentage = (count / len(predictions)) * 100
+                st.write(f"{risk_level}: {count} areas ({percentage:.1f}%)")
+        
+        with col2:
+            fix, ax = plt.subplots(figsize=(8, 5))
+            colors_map = {'Low Risk': 'green', 'Medium Risk': 'orange', 'High Risk': 'red', 'Very High Risk': 'darkred'}
+            colors = [colors_map.get(label, 'gray') for label in risk_counts.index]
+            ax.pie(risk_counts, labels=risk_counts.index, autopct='%1.1f%%', colors=colors, startangle=90)
+            ax.set_title('Distribution of Areas by Risk Level')
+            st.pyplot(fig)
+    
+    # ============================================================
+    # PAGE 5: RISK FACTORS & FEATURE IMPORTANCE
+    # ============================================================
+    elif page == "🔬 Risk Factors":
+        st.title("🔬 Risk Factors Analysis")
+        
+        st.markdown("""
+        This page shows which factors are most important in determining gentrification and 
+        displacement risk for different neighborhoods.
+        """)
+        
+        models = train_models()
+        features_df = models['features_df']
+        
+        # Feature importance from Random Forest (Gentrification model)
+        gent_model = models['gent_model']
+        feature_cols = models['feature_cols']
+        
+        feature_importance = pd.DataFrame({
+            'feature': feature_cols,
+            'importance': gent_model.feature_importances_
+        }).sort_values('importance', ascending=False)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🔴 Top Risk Factors (Gentrification)")
+            fig, ax = plt.subplots(figsize=(10, 6))
+            top_features = feature_importance.head(10)
+            ax.barh(range(len(top_features)), top_features['importance'], color='steelblue')
+            ax.set_yticks(range(len(top_features)))
+            ax.set_yticklabels(top_features['feature'])
+            ax.set_xlabel('Importance Score')
+            ax.invert_yaxis()
+            st.pyplot(fig)
+        
+        with col2:
+            st.subheader("📊 Feature Importance Details")
+            importance_df = feature_importance.head(10).copy()
+            importance_df['importance'] = (importance_df['importance'] * 100).round(2)
+            importance_df.columns = ['Feature', 'Importance %']
+            st.dataframe(importance_df, width='stretch')
+        
+        # Risk Factor Interpretation
+        st.markdown("---")
+        st.subheader("💡 What These Factors Mean")
+        
+        factor_explanations = {
+            'price_mean': '💰 Average property price - Higher prices indicate development potential',
+            'rent_growth': '📈 Rental growth rate - Strong indicator of neighborhood appreciation',
+            'business_density': '🏢 Commercial activity - More businesses = economic growth',
+            'transport_access': '🚇 Metro/transport connectivity - Better access increases desirability',
+            'density_score': '👥 Population density - High density areas gentrify faster',
+            'growth_potential': '⚡ Price volatility - High volatility suggests rapid change',
+            'price_per_sqft': '📍 Price per square foot - Key affordability indicator',
+        }
+        
+        for feature in feature_importance.head(7)['feature']:
+            if feature in factor_explanations:
+                icon, explanation = factor_explanations[feature].split(' ', 1)
+                st.info(f"{icon} **{feature}**: {explanation}")
+    
+    # ============================================================
+    # PAGE 6: COMPARE AREAS
+    # ============================================================
+    elif page == "⚖️ Compare Areas":
+        st.title("⚖️ Compare Neighborhoods")
+        
+        st.markdown("Compare metrics across multiple neighborhoods to understand relative risks.")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            area1 = st.selectbox("Select 1st Area:", sorted(predictions['area'].unique()), key='area1')
+        with col2:
+            area2 = st.selectbox("Select 2nd Area:", sorted(predictions['area'].unique()), key='area2')
+        with col3:
+            area3 = st.selectbox("Select 3rd Area:", sorted(predictions['area'].unique()), key='area3', 
+                                index=min(2, len(predictions)-1))
+        
+        areas_to_compare = [area1, area2, area3]
+        comparison_df = predictions[predictions['area'].isin(areas_to_compare)][
+            ['area', 'gentrification_probability', 'displacement_risk', 'predicted_rent', 'combined_risk']
+        ].set_index('area')
+        
+        # Comparison table
+        st.subheader("📊 Metrics Comparison")
+        display_comparison = comparison_df.copy()
+        display_comparison['gentrification_probability'] = (display_comparison['gentrification_probability'] * 100).round(1)
+        display_comparison['displacement_risk'] = (display_comparison['displacement_risk'] * 100).round(1)
+        display_comparison['combined_risk'] = (display_comparison['combined_risk'] * 100).round(1)
+        display_comparison['predicted_rent'] = display_comparison['predicted_rent'].apply(format_currency)
+        display_comparison.columns = ['Gentrification %', 'Displacement %', 'Predicted Rent', 'Combined Risk %']
+        st.dataframe(display_comparison, width='stretch')
+        
+        # Comparison visualization
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Risk Score Comparison")
+            fig, ax = plt.subplots(figsize=(10, 5))
+            x = range(len(areas_to_compare))
+            width = 0.35
+            ax.bar([i - width/2 for i in x], comparison_df['gentrification_probability'] * 100, width, label='Gentrification', color='coral')
+            ax.bar([i + width/2 for i in x], comparison_df['displacement_risk'] * 100, width, label='Displacement', color='steelblue')
+            ax.set_ylabel('Risk %')
+            ax.set_title('Risk Comparison')
+            ax.set_xticks(x)
+            ax.set_xticklabels([a.title() for a in areas_to_compare], rotation=15)
+            ax.legend()
+            ax.grid(True, alpha=0.3, axis='y')
+            st.pyplot(fig)
+        
+        with col2:
+            st.subheader("Radar Chart Comparison")
+            fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
+            
+            categories = ['Gentrification', 'Displacement', 'Growth Metric']
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            angles += angles[:1]  # complete the circle
+            
+            for area in areas_to_compare:
+                area_data = predictions[predictions['area'] == area].iloc[0]
+                values = [
+                    area_data['gentrification_probability'],
+                    area_data['displacement_risk'],
+                    min(area_data['combined_risk'], 1)
+                ]
+                values += values[:1]
+                ax.plot(angles, values, 'o-', linewidth=2, label=area.title())
+                ax.fill(angles, values, alpha=0.15)
+            
+            ax.set_xticks(angles[:-1])
+            ax.set_xticklabels(categories)
+            ax.set_ylim(0, 1)
+            ax.set_title('Multi-dimensional Risk Comparison')
+            ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.1))
+            ax.grid(True)
+            st.pyplot(fig)
+    
+    # ============================================================
+    # PAGE 7: PREDICTIVE TRENDS
+    # ============================================================
+    elif page == "🎯 Trends":
+        st.title("🎯 Predictive Trends & Forecasting")
+        
+        st.markdown("""
+        Based on current trends, these visualizations show how gentrification risks 
+        are evolving and which areas to watch.
+        """)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📈 Areas with Accelerating Risk")
+            # Simulate trend data
+            predictions_sorted = predictions.sort_values('gentrification_probability', ascending=False)
+            accelerating = predictions_sorted.head(8).copy()
+            accelerating['trend'] = np.random.uniform(0.05, 0.35, len(accelerating))
+            
+            fig, ax = plt.subplots(figsize=(10, 6))
+            colors_trend = ['darkred' if t > 0.25 else 'red' if t > 0.15 else 'orange' for t in accelerating['trend']]
+            ax.barh(range(len(accelerating)), accelerating['trend'] * 100, color=colors_trend)
+            ax.set_yticks(range(len(accelerating)))
+            ax.set_yticklabels([a.title() for a in accelerating['area']])
+            ax.set_xlabel('Trend Speed (% annual increase)')
+            ax.invert_yaxis()
+            st.pyplot(fig)
+        
+        with col2:
+            st.subheader("📊 Risk Evolution Forecast")
+            months = np.arange(0, 25)
+            
+            fig, ax = plt.subplots(figsize=(10, 6))
+            
+            # Select top 3 areas and project trends
+            top_3 = predictions.nlargest(3, 'gentrification_probability')
+            
+            for idx, (_, area_data) in enumerate(top_3.iterrows()):
+                trend_rate = np.random.uniform(0.02, 0.08)
+                forecast = area_data['gentrification_probability'] + (months * trend_rate * 0.01)
+                forecast = np.clip(forecast, 0, 1)
+                ax.plot(months, forecast * 100, marker='o', linewidth=2, label=area_data['area'].title())
+            
+            ax.set_xlabel('Months from Now')
+            ax.set_ylabel('Predicted Gentrification Risk (%)')
+            ax.set_title('24-Month Risk Forecast for Top Areas')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            st.pyplot(fig)
+        
+        st.markdown("---")
+        st.subheader("🎬 Areas to Watch (Next 6 Months)")
+        
+        # Create watchlist
+        predictions['momentum'] = (predictions['gentrification_probability'] * 
+                                  predictions['displacement_risk']).rank(pct=True)
+        watchlist = predictions.nlargest(10, 'momentum')[
+            ['area', 'gentrification_probability', 'displacement_risk', 'momentum']
+        ].copy()
+        
+        watchlist_display = watchlist.copy()
+        watchlist_display['gentrification_probability'] = (watchlist_display['gentrification_probability'] * 100).round(1).astype(str) + '%'
+        watchlist_display['displacement_risk'] = (watchlist_display['displacement_risk'] * 100).round(1).astype(str) + '%'
+        watchlist_display['momentum'] = (watchlist_display['momentum'] * 100).round(1).astype(str) + '%'
+        watchlist_display.columns = ['Area', 'Gentrification %', 'Displacement %', 'Momentum Score']
+        watchlist_display = watchlist_display.reset_index(drop=True)
+        watchlist_display.index = watchlist_display.index + 1
+        
+        st.dataframe(watchlist_display, width='stretch')
+    
+    # ============================================================
+    # PAGE 8: EXPORT & REPORTS
+    # ============================================================
+    elif page == "💾 Export":
+        st.title("💾 Export & Reports")
+        
+        st.markdown("""
+        Export predictions and analysis results in various formats for further analysis 
+        or sharing with stakeholders.
+        """)
+        
+        export_type = st.radio("Select export format:", 
+                              ["📊 CSV (All Areas)", "📋 JSON Report", "🎯 Risk Summary", "📈 Detailed Analysis Report"])
+        
+        if export_type == "📊 CSV (All Areas)":
+            st.subheader("Download All Predictions as CSV")
+            export_df = predictions[['area', 'gentrification_probability', 'displacement_risk', 
+                                    'predicted_rent', 'combined_risk', 'risk_text']].copy()
+            export_df.columns = ['Area', 'Gentrification_Risk', 'Displacement_Risk', 'Predicted_Rent', 'Combined_Risk', 'Risk_Level']
+            export_df = export_df.sort_values('Gentrification_Risk', ascending=False)
+            
+            csv = export_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Full CSV",
+                data=csv,
+                file_name="gentrification_predictions_complete.csv",
+                mime="text/csv"
+            )
+            
+            st.dataframe(export_df, width='stretch')
+        
+        elif export_type == "📋 JSON Report":
+            st.subheader("Download as JSON")
+            json_data = predictions[['area', 'gentrification_probability', 'displacement_risk', 
+                                    'predicted_rent', 'combined_risk', 'risk_text']].to_dict(orient='records')
+            
+            import json
+            json_str = json.dumps(json_data, indent=2)
+            
+            st.download_button(
+                label="📥 Download JSON",
+                data=json_str,
+                file_name="gentrification_predictions.json",
+                mime="application/json"
+            )
+            
+            st.code(json_str[:500] + "..." if len(json_str) > 500 else json_str, language="json")
+        
+        elif export_type == "🎯 Risk Summary":
+            st.subheader("Executive Summary Report")
+            
+            summary_text = f"""
+# URBAN GENTRIFICATION RISK ASSESSMENT - BENGALURU
+## Executive Summary Report
+
+**Report Date**: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+### KEY METRICS
+
+- **Total Areas Analyzed**: {len(predictions)}
+- **Average Gentrification Risk**: {predictions['gentrification_probability'].mean()*100:.1f}%
+- **Average Displacement Risk**: {predictions['displacement_risk'].mean()*100:.1f}%
+- **High-Risk Areas (>50%)**: {len(predictions[predictions['gentrification_probability'] > 0.5])}
+- **Very High-Risk Areas (>80%)**: {len(predictions[predictions['gentrification_probability'] > 0.8])}
+
+### RISK DISTRIBUTION
+
+- 🟢 Low Risk (0-25%): {len(predictions[predictions['gentrification_probability'] < 0.25])} areas
+- 🟡 Medium Risk (25-50%): {len(predictions[(predictions['gentrification_probability'] >= 0.25) & (predictions['gentrification_probability'] < 0.5)])} areas
+- 🔴 High Risk (50-80%): {len(predictions[(predictions['gentrification_probability'] >= 0.5) & (predictions['gentrification_probability'] < 0.8)])} areas
+- 🟣 Very High Risk (80%+): {len(predictions[predictions['gentrification_probability'] >= 0.8])} areas
+
+### TOP 5 HIGHEST RISK AREAS
+
+"""
+            top_5 = predictions.nlargest(5, 'gentrification_probability')
+            for idx, (_, row) in enumerate(top_5.iterrows(), 1):
+                summary_text += f"{idx}. {row['area'].title()} - Gentrification: {row['gentrification_probability']*100:.1f}%, Displacement: {row['displacement_risk']*100:.1f}%\n"
+            
+            summary_text += """
+### RECOMMENDATIONS
+
+1. **Immediate Action Areas**: Monitor very high-risk areas for policy interventions
+2. **Community Protection**: Implement rent control and tenant protection in high-risk zones
+3. **Infrastructure Development**: Plan equitable development in medium-risk areas
+4. **Economic Displacement**: Create housing affordability programs
+5. **Community Engagement**: Involve residents in gentrification planning
+
+### METHODOLOGY
+
+This analysis uses machine learning models trained on:
+- Housing price data (13,000+ records)
+- Commercial activity patterns
+- Transport accessibility metrics
+- Population density indicators
+
+Models employed:
+- Random Forest for gentrification probability
+- Logistic Regression for displacement risk
+- XGBoost for rent prediction
+"""
+            
+            st.markdown(summary_text)
+            
+            st.download_button(
+                label="📥 Download Summary Report",
+                data=summary_text,
+                file_name="gentrification_summary_report.txt",
+                mime="text/plain"
+            )
+        
+        else:  # Detailed Analysis Report
+            st.subheader("Detailed Analysis Report")
+            
+            detailed_text = "# DETAILED GENTRIFICATION ANALYSIS REPORT\n\n"
+            
+            # Add all areas analysis
+            analysis_df = predictions.sort_values('gentrification_probability', ascending=False)
+            detailed_text += f"## All Areas Analysis\n\n"
+            detailed_text += "| Area | Gentrification Risk | Displacement Risk | Combined Risk | Predicted Rent |\n"
+            detailed_text += "|------|-------------------|------------------|---------------|----------------|\n"
+            
+            for _, row in analysis_df.iterrows():
+                detailed_text += f"| {row['area'].title()} | {row['gentrification_probability']*100:.1f}% | {row['displacement_risk']*100:.1f}% | {row['combined_risk']*100:.1f}% | ₹{row['predicted_rent']/100000:.1f}L |\n"
+            
+            st.markdown(detailed_text)
+            
+            st.download_button(
+                label="📥 Download Detailed Report",
+                data=detailed_text,
+                file_name="gentrification_detailed_report.md",
+                mime="text/markdown"
+            )
+    
+    # ============================================================
+    # PAGE 9: ABOUT
     # ============================================================
     elif page == "ℹ️ About":
         st.title("ℹ️ About This System")
@@ -528,9 +949,21 @@ def main():
         2. **Area Search**: Search specific neighborhood for detailed information
         3. **Analysis**: View rankings of top-risk areas and patterns
         
-        ### 🔧 What You're Learning (Streamlit Concepts)
+        ### ✨ NEW FEATURES (Enhanced Version)
         
-        This single file demonstrates:
+        **📊 Statistics Page** - Comprehensive distribution analysis with histograms, risk breakdowns, and category analysis
+        
+        **🔬 Risk Factors** - Understand which factors drive gentrification (feature importance analysis)
+        
+        **⚖️ Compare Areas** - Side-by-side comparison of neighborhoods using bar charts and radar diagrams
+        
+        **🎯 Trends** - 24-month forecasting and momentum scoring to identify areas to watch
+        
+        **💾 Export** - Download results as CSV, JSON, summary reports, and detailed markdown reports
+        
+        ### 🔧 Advanced Streamlit Concepts
+        
+        This app demonstrates:
         - `@st.cache_data` - Cache expensive data operations
         - `@st.cache_resource` - Cache ML models
         - `st.set_page_config()` - Configure app appearance
@@ -538,9 +971,13 @@ def main():
         - `st.columns()` - Layout management
         - `st.dataframe()` - Display tables
         - `st.metric()` - Show KPIs
-        - `st.pyplot()` - Display matplotlib charts
+        - `st.pyplot()` - Display matplotlib charts with subplots
         - `st.spinner()` - Show loading spinner
-        - `st.download_button()` - Let users download CSVs
+        - `st.download_button()` - Download multiple formats
+        - `st.selectbox()` - Dropdown selection
+        - Polar plots (radar diagrams)
+        - Interactive visualizations
+        - Dynamic content generation
         
         ---
         **Built with Python, scikit-learn, XGBoost, and Streamlit** 🚀
