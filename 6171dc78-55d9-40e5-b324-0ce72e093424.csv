@@ -1,0 +1,81 @@
+VARIABLE_NAME,Description,Values
+SECTOR,NA,
+ST,C11 Sate Code (need to check match with CEB data),
+District,Four Digit District code (firist two digits are the state code from above),
+Tahsil,Seven Digit Tahsil code (first four digits are the district code from above),
+Village_or_Town,Eleven Digit Village or Town code (first seven digits are from the Tahsil code from above),
+WC,Four Digit stand-alone code,0-198 ward no.
+EB,Four Digit stand-alone code,
+EBX,Two Digit stand-along code,
+C_HOUSE,"Column-2 of Schedule 6A, PDF-Page 14?  (1= Commercial; 2= Residential; 3 = Residential cum Commercial; 9 = Others)",1= Commercial; 2= Residential; 3 = Residential cum Commercial; 9 = Others
+BACT,"Broad Activity, Column 12 of Schedule 6A PDF-Page18 (Refer manual for codes)","01 - Activities relating to agriculture other than crop prod
+02 - Livestock
+03 - Forestry and Logging
+04 - Fishing and aqua culture
+05 - Mining and quarrying
+06 - Manufacturing 07 - Electricity, gas, steam and air conditioning supply
+08 - Water supply, sewerage, waste management and remediatio
+09 - Construction
+10- Whole sale trade, retail trade & repair of motor vehicle
+11 - Whole sale trade ( not covered in item-10 above )
+12 - Retail trade ( not covered in item-10 above )
+13 - Transportation and storage
+14 - Accomodation and and Food service activities
+15 - Information & communication
+16 - Financial and insurance activities
+17 - Real estate activities
+18 - Professional, scientific & technical activities
+19 - Administrative and support service activities
+20 - Education
+21 - Human health & social work activities
+22 - Arts entertainment, sports & amusement and recreation
+23 - Other service activities not else where classified"
+NIC3,NIC 2008 3-Digit Code filled by the District Statistics Office based on enumerator collected information,Refer manual. Too many.
+HLOOM_ACT,"Is it Handloom/Handicraft Activity (Yes -1, No -0)",
+OWN_SHIP_C,Ownership of Enterprise (Column 15 of 6A) See PDF-Page20 for coding details,"1 - Govt / PSU
+2 - Private : Proprietary
+3 - Private : Partnership
+4 - Private : Company
+5 - Private : Self Help Group
+6 - Private : Co-operative
+7 - Private : Non-profit Institution
+9 - ""Private : Others """
+SEX,The gender of the owner of proprietary establishment (1= male; 2= female; 9 = others),"0 - N A
+1 - Male
+2 - Female
+9 - Others"
+SG,"The social group of the owner of the establishment (SC, ST, OBC, OTH) Column 17 of 6A","0 - N A
+1 - SC
+2 - ST
+3 - OBC
+9 - Others"
+RELIGION,Religion of the owner (census religion codes used) Column 18 of 6A,"0 - N A
+1 - Hindu
+2 - Islam
+3 - Christian
+4 - Sikh
+5 - Buddhist
+6 - Zoroastrian(Parsi)
+7 - Jain
+9 - Others"
+NOP,Nature of operation (perennial = 1; seasonal =2; causal =3) See PDF-page 22 for further coding details,"1 - Perinnial
+2 - Seasonal
+9 - Casual"
+SOF,Major Source of Finance  (See 6A and PDF-page 23 for details),"1 - Self finance
+2 - Financial Assistance from Govt. sources
+3 - Borrowing from financial institutions
+4 - Borrowing from Non-institutions / Money Lenders
+5 - Loan from Self Help Group
+9 - Donations / Transfers from other agencies"
+NO_EBS,Number of Establishments,
+TOTAL_WORKERS,NA,
+M_H,No of Males employed ( Hired ),
+F_H,No. of Females employed ( Hired ),
+M_NH,No of Males employed ( Not Hired ),
+F_NH,No of Females employed ( Not Hired ),
+IN_HH,Number of establishments owned by HH(HouseHold) members Inside HH,
+TOTAL_WORKER,Total no. of persons employed,
+Total_worker,NA,
+total_worker,NA,
+DT,District,
+T_V,Taluk or Village,
